@@ -1,0 +1,141 @@
+$(function () {
+
+     /* print preview */
+    $('a.print-preview').printPreview();
+
+    /* remove header border-bottom */
+    if( $('.mainpage_slider').length ) {
+        $('.header').css({'border-bottom':0});
+    }
+
+    /* sticky footer helpers */
+    var f_height = $('.footer').outerHeight();
+    $('.footer_pusher').height(f_height)
+    $('.page_wrapper').css({
+        'margin-bottom': -f_height
+    })
+
+    /* default dropdown classes */
+    var dd = 'dropdown',
+    dd_active = 'dropdown_active',
+    dd_list = 'dropdown__list',
+    dd_list_item = 'dropdown__list__item',
+    dd_list_link = 'dropdown__list__item__link'
+    dd_anchor = 'dropdown__anchor',
+    dd_border = 'dropdown__anchor__border',
+    dd_border_active = 'dropdown__anchor__border_active';
+
+
+    /* selects */
+    function openDropdown(obj) {
+        if ($(obj).is('.select_region__dropdown')) {
+            var listOption = ( $(obj).is('.select_region__dropdown_country') ) ? 'country' : 'city';
+            $(obj).addClass('select_region__dropdown_active')
+            $('.select_region__dropdown__regions_list', obj).show()
+            $('.select_region__dropdown__anchor__border', obj).addClass('select_region__dropdown__anchor_' + listOption + '__border_active')
+        } else {
+			if ( $(obj).parents('.delivery__region_box').length ) {
+				$('.delivery__popup').fadeIn(100)
+                $('html,body').animate({scrollTop:$('.delivery__popup').offset().top},300)
+			} else {
+	            $(obj).addClass(dd_active)
+	            $('.' + dd_list, obj).show()
+	            $('.' + dd_border, obj).addClass(dd_border_active)
+			}
+        }
+    }
+
+    function closeDropdown() {
+        $('.select_region__dropdown_active').removeClass('select_region__dropdown_active')
+        $('.select_region__dropdown__regions_list').hide()
+        $('.select_region__dropdown__anchor__border').removeClass('select_region__dropdown__anchor_country__border_active select_region__dropdown__anchor_city__border_active')
+
+        $('.' + dd_active).removeClass(dd_active)
+        $('.' + dd_list).hide()
+        $('.' + dd_border).removeClass(dd_border_active)
+    }
+
+   /* $('body').on('click', '.dropdown__list__item__link', function () {
+        $(this).parents('ul').find('.dropdown__anchor__border').text($(this).text())
+    })*/
+
+    $('body').on('click', '.' + dd_list_link, function () {
+        var parent = $(this).parents('.' + dd),
+            item = $(this).parent();
+
+        $('.' + dd_border, parent).text($(this).text());
+
+        if($('input[data-id="'+ parent.attr('id') +'"]').length) {
+            $('input[data-id="'+ parent.attr('id') +'"]').val(item.attr('data-value')).change();
+        }
+    })
+    
+    $('.delivery__regions').on('click', 'a', function() {
+		$('.delivery__regions a').removeClass('delivery__regions__item__link_active delivery__regions__item__link_sub_active');
+		
+		if ( $(this).hasClass('delivery__regions__item__link') ) {
+			$(this).addClass('delivery__regions__item__link_active');
+		} else {
+			$(this).addClass('delivery__regions__item__link_sub_active');
+		}
+    })
+    
+    $('.delivery__popup__close').on('click', function() {
+		$(this).parent().fadeOut(100)
+    })
+
+    $('body').on('click', '.select_region__dropdown, .' + dd, function (e) {
+        if ($(this).is('.select_region__dropdown_active, .' + dd_active)) {
+            closeDropdown()
+        } else {
+            closeDropdown()
+            openDropdown(this)
+        }
+
+        $('body').on('click', function () {
+            closeDropdown()
+        })
+
+        e.stopPropagation()
+    })
+
+    /* disable hashtag links */
+    $('body').on('click', 'a[href="#"]', function (e) {
+        e.preventDefault()
+    })
+
+
+    $('#select_city > li').on('click', function () {
+        var cityName = $(this).text();
+        var cityId = $(this).data('id');
+		
+        $('.contacts__map__marker_active').removeClass('contacts__map__marker_active');
+        $('.contacts__map__marker[name='+ cityId +']').addClass('contacts__map__marker_active');
+        $('.branches_dropdown__anchor__border').text(cityName);
+        closeDropdown();
+        
+        $('#list_update').html('<img src=\"/img/ajax-loader-v3.gif\" class="m_auto mt_20 block" alt=\"пожалуйста подождите\" />');
+
+        $.ajax({
+            url: '/?r=branch/branch/loadBranches',
+            type: 'POST',
+            data:'city='+cityId,
+            dataType:'text',
+            success: function(data) {
+                $('div#list_update').html(data);
+            }
+        });
+        return false;
+    });
+
+    /* after ajax scroll to top of list_update */
+    function ajax_complete() {
+        $(document).on('ajaxComplete',function() {
+            if($('#list_update').length && !($('#list_update .branches_list').length)) {
+                $('html,body').animate({scrollTop: ( $('#list_update').offset().top - 40 )}, 200);
+            }
+        });
+    }
+
+    ajax_complete();
+})
